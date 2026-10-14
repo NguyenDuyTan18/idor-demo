@@ -2,7 +2,7 @@
 
 ## 1. Source và yêu cầu môi trường
 
-Repo: `https://github.com/NguyenDuyTan18/demo-IDOR.git`, nhánh `main`. Dùng commit SHA đã push làm revision nếu muốn cố định bản cho luận văn. `topology.yml`, `training-definition.json` và `provisioning/` nằm tại root.
+Repo: `https://github.com/NguyenDuyTan18/idor-demo.git`, nhánh `main`. Dùng commit SHA đã push làm revision nếu muốn cố định bản cho luận văn. `topology.yml`, `training-definition.json` và `provisioning/` nằm tại root.
 
 Cloud cần có image `kali`, `debian-12-x86_64`, flavor `standard.kali`, `standard.small`; các image có management user `debian`, sudo và SSH phù hợp. Đây là tên cấu hình phải xác nhận trên deployment của bạn, có thể sửa trước khi dựng pool. Platform tự bổ sung các node quản lý; topology gồm hai host và một gateway cho mỗi sandbox.
 
@@ -21,7 +21,7 @@ Không chạy `provisioning/playbook.yml` với inventory tự đoán; Sandbox S
 ## 2. Dựng hai sandbox
 
 1. Instructor vào **Sandbox Agenda → Sandbox Definitions → Create**.
-2. Git URL: `https://github.com/NguyenDuyTan18/demo-IDOR.git`; Revision: `main` hoặc commit SHA. Không dùng link `/tree/main` trong trường clone URL.
+2. Git URL: `https://github.com/NguyenDuyTan18/idor-demo.git`; Revision: `main` hoặc commit SHA. Không dùng link `/tree/main` trong trường clone URL.
 3. Kiểm tra preview có `kali`, `web`, `gateway`, một practice-lan.
 4. **Pools → Create**, chọn definition IDOR, size **2**; **Allocate** đủ hai sandbox, chờ networking/provisioning thành công.
 5. Kiểm tra Ansible output: định danh sandbox ghi trên từng host, ServiceDesk hoạt động, Kali truy cập web `10.80.0.20:8080` trong sandbox mình.
