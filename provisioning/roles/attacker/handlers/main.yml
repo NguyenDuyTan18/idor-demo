@@ -1,4 +1,0 @@
-- name: Reload IDOR SSH
-  ansible.builtin.service:
-    name: ssh
-    state: reloaded

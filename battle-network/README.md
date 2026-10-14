@@ -26,35 +26,34 @@ Mạng `10.90.0.0/24` phải không trùng route hiện có. Helper từ chối 
 Từ root repo:
 
 ```bash
-cp battle-network/terraform/terraform.tfvars.example battle-network/terraform/terraform.tfvars
-cp battle-network/inventory.example.yml battle-network/inventory.yml
+cp battle-network/battle-config.example.json battle-network/battle-config.json
 ```
 
-Trong `terraform.tfvars`, thay `pool_id`, cloud profile và cả sáu UUID. `teams.A` phải khớp sandbox được cấp cho tài khoản đội A, tương tự B. VM UUID là Nova ID, không phải tên `kali`/`web`. Hai sandbox UUID và bốn VM UUID phải khác nhau. Nếu dùng xác thực `OS_*`, đặt `cloud_name = null`.
+Trong `battle-config.json`, thay `pool_id`, cloud profile, sáu UUID và hai đường dẫn management SSH config. `teams.A` phải khớp sandbox được cấp cho tài khoản đội A, tương tự B. VM UUID là Nova ID, không phải tên `kali`/`web`. Hai sandbox UUID và bốn VM UUID phải khác nhau. Nếu dùng xác thực `OS_*`, đặt `cloud_name` thành `null`.
 
-Trong `inventory.yml`, thay hai đường dẫn `/absolute/path/...-management-config` bằng SSH config tương ứng. `ansible_user: debian` phải khớp management user của image. Với đường dẫn có khoảng trắng cần quote đúng trong SSH args. Giữ tùy chọn tắt SSH multiplex để hai alias trùng tên không dùng nhầm kết nối.
+`battlectl.py` từ chối placeholder, UUID trùng, đường dẫn tương đối hoặc SSH config không tồn tại. Nó sinh `.runtime/terraform.auto.tfvars.json` và `.runtime/inventory.yml`; cả hai đều bị Git bỏ qua. `ansible_user: debian` phải khớp management user của image. Không đưa management bundle, credentials hoặc file sinh ra vào Git.
 
 ## 2. Xem plan và triển khai
 
 ```bash
-cd battle-network/terraform
-terraform init
-terraform validate
-terraform plan -out=battle.tfplan
+python3 battle-network/battlectl.py plan
 ```
 
-Kiểm tra selected VM names/UUID, bốn địa chỉ và project trong plan. Cấu hình có đọc VM hiện hữu, kiểm tra Kali có IP gốc `.10`/web `.20`; không tạo compute instance. Không đổi UUID để ép plan qua nếu ánh xạ sai.
+Kiểm tra selected VM names/UUID, bốn địa chỉ và project trong plan. Cấu hình đọc VM hiện hữu, kiểm tra Kali có IP gốc `.10`/web `.20`; không tạo compute instance. Không đổi UUID để ép plan qua nếu ánh xạ sai.
 
 Sau khi operator đã review plan:
 
 ```bash
-terraform apply battle.tfplan
-terraform output -json > ../cloud-outputs.json
-cd ../..
-ansible-playbook -i battle-network/inventory.yml battle-network/configure-guests.yml
+python3 battle-network/battlectl.py deploy
 ```
 
-`cloud-outputs.json` chứa UUID port, MAC và mapping của bốn VM. Guest playbook kiểm tra identity thực tế trước khi sửa NIC, chọn NIC theo MAC, đặt IP tĩnh, bật dịch vụ tự cấu hình khi boot và kiểm tra HTTP đối phương. NetworkManager hoặc systemd-networkd được dùng nếu đang chạy; nếu không, oneshot đặt IP bằng `ip` mỗi lần boot. Không restart NIC quản lý.
+Lệnh `deploy` chỉ apply đúng saved plan vừa review, ghi `cloud-outputs.json`, rồi chạy Ansible. Nếu `battle-config.json` đã thay đổi sau lúc tạo plan, công cụ dừng và yêu cầu chạy `plan` lại. `cloud-outputs.json` chứa UUID port, MAC và mapping của bốn VM. Guest playbook kiểm tra identity thực tế trước khi sửa NIC, chọn NIC theo MAC, đặt IP tĩnh, bật dịch vụ tự cấu hình khi boot và kiểm tra HTTP đối phương. NetworkManager hoặc systemd-networkd được dùng nếu đang chạy; nếu không, oneshot đặt IP bằng `ip` mỗi lần boot. Không restart NIC quản lý.
+
+Muốn chỉ chạy lại phần cấu hình và health check sau khi mạng đã được tạo:
+
+```bash
+python3 battle-network/battlectl.py verify
+```
 
 Nếu hot-plug chưa tạo NIC trong guest, kiểm tra trạng thái Nova/hypervisor trước khi chạy lại playbook. Nếu playbook dừng tại identity/MAC/default route, đọc lỗi và đối chiếu mapping; không bỏ assert. Sau reboot VM, kiểm tra lại `ip -4 addr`, `ip route`, `systemctl status idor-battle-nic` và health hai chiều.
 

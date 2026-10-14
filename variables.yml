@@ -1,4 +1,0 @@
-# Platform APG owns generation and answer storage. No local fallback flag.
-idor_flag:
-  type: password
-  length: 32

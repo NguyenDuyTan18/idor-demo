@@ -16,4 +16,6 @@ evidence-private/
 **/*.tfvars.json
 **/cloud-outputs.json
 battle-network/inventory.yml
+battle-network/battle-config.json
+battle-network/.runtime/
 **/crash.log

@@ -28,6 +28,8 @@ provisioning/
   group_vars/all.yml
   files/servicedesk.service
 battle-network/
+  battlectl.py
+  battle-config.example.json
   terraform/{versions,variables,main,outputs}.tf
   terraform/terraform.tfvars.example
   terraform/.terraform.lock.hcl
@@ -45,10 +47,10 @@ docs/{deployment,trainee-access,verification}.md
 ## Triển khai
 
 1. Kiểm tra tên image/flavor và management user trong `topology.yml` tồn tại trên cloud. CIDR của lab phải không trùng management network hoặc route đang dùng.
-2. Tạo Sandbox Definition từ `https://github.com/NguyenDuyTan18/demo-IDOR.git`, revision **master** hoặc commit SHA đã push. Tạo pool size 2 và Allocate đủ hai sandbox.
+2. Tạo Sandbox Definition từ `https://github.com/NguyenDuyTan18/demo-IDOR.git`, revision **main** hoặc commit SHA đã push. Tạo pool size 2 và Allocate đủ hai sandbox.
 3. Import `training-definition.json` thành definition mới, review/Release rồi tạo Training Instance: cloud environment, gán pool trên, Start/End time đang có hiệu lực.
 4. Hai tài khoản portal khác nhau dùng cùng access token của instance, mỗi tài khoản mở một Training Run. Instructor ghi lại trainee → run → sandbox → VM thực tế.
-5. Điền UUID thật vào Terraform, xem plan rồi triển khai mạng chung bằng tài khoản cloud của instructor. Chạy playbook cấu hình NIC theo đúng management SSH config của từng sandbox.
+5. Điền UUID thật và hai management SSH config vào `battle-network/battle-config.json`, chạy `battlectl.py plan`, review rồi chạy `battlectl.py deploy`. Công cụ tạo mạng chung, gắn bốn NIC, cấu hình IP và kiểm tra web đối phương.
 
 Chi tiết: [triển khai](docs/deployment.md), [cấp và truy cập sandbox](docs/trainee-access.md), [mạng hai đội](battle-network/README.md).
 
@@ -72,7 +74,7 @@ Access Level làm topology và Open console xuất hiện mà không cần sửa
 python3 -m venv .venv
 . .venv/bin/activate
 python3 -m pip install -r requirements-dev.txt
-python3 -m coverage run --source=app,battle-network/guest -m unittest discover -s tests -v
+python3 -m coverage run --source=app,battle-network -m unittest discover -s tests -v
 python3 -m coverage report --fail-under=80
 cd battle-network/terraform
 terraform init

@@ -1,7 +1,0 @@
-user_access_username: user-access
-user_access_password: '{{ idor_console_lab_password }}'
-user_access_present: true
-user_access_sudo: false
-# Explicitly avoid a distribution-dependent shell that may not be installed.
-user_access_shell: /bin/bash
-user_access_ssh_public_key: '{{ global_ssh_public_user_key }}'

@@ -188,6 +188,15 @@ class DefinitionTests(unittest.TestCase):
         self.assertFalse((ROOT / 'interconnect').exists())
         self.assertFalse((ROOT / 'variables.yml').exists())
 
+    def test_operator_guide_uses_main_and_one_command_battle_tool(self):
+        readme = (ROOT / 'README.md').read_text(encoding='utf-8')
+        deployment = (ROOT / 'docs/deployment.md').read_text(encoding='utf-8')
+        battle = (ROOT / 'battle-network/README.md').read_text(encoding='utf-8')
+        self.assertNotIn('revision **master**', readme)
+        self.assertNotIn('nhánh `master`', deployment)
+        self.assertIn('battlectl.py plan', battle)
+        self.assertIn('battlectl.py deploy', battle)
+
 
 if __name__ == '__main__':
     unittest.main()
