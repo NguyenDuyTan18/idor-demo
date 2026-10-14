@@ -1,0 +1,50 @@
+# Copy to inventory.yml (gitignored). Replace hub and both SSH config paths.
+# Use instructor MANAGEMENT configs, not trainee configs: setup requires sudo.
+# Aliases distinguish identical attacker/server hostnames in two sandboxes.
+all:
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+    idor_overlay_cidr: 10.200.0.0/24
+    idor_hub_ip: 10.200.0.1
+    idor_hub_endpoint: lab-hub.example.org:51820
+    idor_hub_port: 51820
+  children:
+    lab_hub:
+      hosts:
+        lab-hub:
+          ansible_host: lab-hub.example.org
+          ansible_user: debian
+    lab_peers:
+      hosts:
+        team-a-attacker:
+          ansible_host: attacker
+          ansible_user: debian
+          ansible_ssh_common_args: '-F /absolute/path/team-a-management-config -o ControlMaster=no -o ControlPath=none'
+          idor_overlay_ip: 10.200.0.11
+          idor_peer_kind: attacker
+          idor_other_attacker_ip: 10.200.0.21
+          idor_other_server_ip: 10.200.0.22
+        team-a-server:
+          ansible_host: server
+          ansible_user: debian
+          ansible_ssh_common_args: '-F /absolute/path/team-a-management-config -o ControlMaster=no -o ControlPath=none'
+          idor_overlay_ip: 10.200.0.12
+          idor_peer_kind: server
+          idor_other_attacker_ip: 10.200.0.21
+          idor_other_server_ip: 10.200.0.22
+        team-b-attacker:
+          ansible_host: attacker
+          ansible_user: debian
+          ansible_ssh_common_args: '-F /absolute/path/team-b-management-config -o ControlMaster=no -o ControlPath=none'
+          idor_overlay_ip: 10.200.0.21
+          idor_peer_kind: attacker
+          idor_other_attacker_ip: 10.200.0.11
+          idor_other_server_ip: 10.200.0.12
+        team-b-server:
+          ansible_host: server
+          ansible_user: debian
+          ansible_ssh_common_args: '-F /absolute/path/team-b-management-config -o ControlMaster=no -o ControlPath=none'
+          idor_overlay_ip: 10.200.0.22
+          idor_peer_kind: server
+          idor_other_attacker_ip: 10.200.0.11
+          idor_other_server_ip: 10.200.0.12

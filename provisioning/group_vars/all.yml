@@ -1,0 +1,4 @@
+# Public training fixtures; do not use as platform or infrastructure passwords.
+lab_console_password: ClientLab-Only-2026!
+lab_web_password: IdorLab-Only-2026!
+lab_enforce_owner: false

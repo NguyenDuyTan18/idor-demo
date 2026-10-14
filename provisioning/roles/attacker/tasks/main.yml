@@ -1,0 +1,75 @@
+- name: Ensure sshd reads its drop-in directory before image defaults
+  ansible.builtin.lineinfile:
+    path: /etc/ssh/sshd_config
+    line: 'Include /etc/ssh/sshd_config.d/*.conf'
+    insertbefore: BOF
+    state: present
+    validate: '/usr/sbin/sshd -t -f %s'
+  notify: Reload IDOR SSH
+
+- name: Enable console password and key access only for the trainee account
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/00-idor-user-access.conf
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      # Loaded before cloud-init's 50-* and user-access's 99-* settings.
+      Match User user-access
+          PasswordAuthentication yes
+          PubkeyAuthentication yes
+          AuthenticationMethods any
+          KbdInteractiveAuthentication no
+          AllowTcpForwarding yes
+      Match all
+  notify: Reload IDOR SSH
+
+- name: Keep the trainee login shell and account expiry usable
+  ansible.builtin.user:
+    name: user-access
+    shell: /bin/bash
+    expires: -1
+    password_expire_max: -1
+
+- name: Validate complete SSH syntax before reloading
+  ansible.builtin.command: /usr/sbin/sshd -t
+  changed_when: false
+
+- name: Apply SSH changes before effective configuration checks
+  ansible.builtin.meta: flush_handlers
+
+- name: Inspect the effective trainee configuration including Match blocks
+  ansible.builtin.command: /usr/sbin/sshd -T -C user=user-access,host=attacker,addr=127.0.0.1
+  register: idor_sshd_effective
+  changed_when: false
+
+- name: Fail allocation if console password or user SSH keys are disabled
+  ansible.builtin.assert:
+    that:
+      - "'passwordauthentication yes' in idor_sshd_effective.stdout_lines"
+      - "'pubkeyauthentication yes' in idor_sshd_effective.stdout_lines"
+      - "'authenticationmethods any' in idor_sshd_effective.stdout_lines"
+    fail_msg: 'Image SSH policy overrides user-access; inspect sshd -T and earlier Match/Include rules.'
+
+- name: Verify that the trainee password is not locked
+  ansible.builtin.command: getent shadow user-access
+  register: idor_user_shadow
+  changed_when: false
+  no_log: true
+
+- name: Require an unlocked trainee password
+  ansible.builtin.assert:
+    that:
+      - idor_user_shadow.stdout.split(':')[1] | length > 0
+      - "idor_user_shadow.stdout.split(':')[1][0] not in ['!', '*']"
+  no_log: true
+
+- name: Check Kali to router to web connectivity on the training network
+  ansible.builtin.uri:
+    url: 'http://{{ idor_web_ip }}:{{ idor_web_port }}/health'
+    return_content: true
+    use_proxy: false
+  register: idor_attacker_health
+  until: idor_attacker_health.status | default(0) == 200
+  retries: 10
+  delay: 3

@@ -1,0 +1,42 @@
+name: idor-battle-lab
+hosts:
+  - name: kali
+    base_box:
+      image: kali
+      mgmt_user: debian
+    flavor: standard.kali
+  - name: web
+    base_box:
+      image: debian-12-x86_64
+      mgmt_user: debian
+    flavor: standard.small
+routers:
+  - name: gateway
+    base_box:
+      image: debian-12-x86_64
+      mgmt_user: debian
+    flavor: standard.small
+wan:
+  name: wan
+  cidr: 100.100.100.0/24
+networks:
+  - name: practice-lan
+    cidr: 10.80.0.0/24
+    accessible_by_user: true
+net_mappings:
+  - host: kali
+    network: practice-lan
+    ip: 10.80.0.10
+  - host: web
+    network: practice-lan
+    ip: 10.80.0.20
+router_mappings:
+  - router: gateway
+    network: practice-lan
+    ip: 10.80.0.1
+groups:
+  - name: idor-lab-nodes
+    nodes:
+      - kali
+      - web
+      - gateway

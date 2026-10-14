@@ -1,0 +1,24 @@
+[Interface]
+Address = {{ idor_hub_ip }}/24
+ListenPort = {{ idor_hub_port }}
+PrivateKey = {{ idor_wg_private.content | b64decode | trim }}
+# Dedicated chain; no global firewall flush and no web port on the hub's public IP.
+# Reserve this chain/interface for this one experiment pool.
+PostUp = iptables -N IDOR-LAB
+PostUp = iptables -A IDOR-LAB -s {{ idor_overlay_cidr }} -d {{ idor_overlay_cidr }} -p icmp -j ACCEPT
+PostUp = iptables -A IDOR-LAB -s {{ idor_overlay_cidr }} -d {{ idor_overlay_cidr }} -p tcp --dport 8080 -j ACCEPT
+PostUp = iptables -A IDOR-LAB -s {{ idor_overlay_cidr }} -d {{ idor_overlay_cidr }} -m conntrack --ctstate ESTABLISHED,RELATED -j ACCEPT
+PostUp = iptables -A IDOR-LAB -j DROP
+PostUp = iptables -I FORWARD 1 -i %i -o %i -j IDOR-LAB
+PostUp = iptables -I INPUT 1 -p udp --dport {{ idor_hub_port }} -j ACCEPT
+PostDown = iptables -D FORWARD -i %i -o %i -j IDOR-LAB
+PostDown = iptables -D INPUT -p udp --dport {{ idor_hub_port }} -j ACCEPT
+PostDown = iptables -F IDOR-LAB
+PostDown = iptables -X IDOR-LAB
+
+{% for peer in groups['lab_peers'] %}
+[Peer]
+PublicKey = {{ hostvars[peer].idor_wg_public.stdout | trim }}
+AllowedIPs = {{ hostvars[peer].idor_overlay_ip }}/32
+
+{% endfor %}

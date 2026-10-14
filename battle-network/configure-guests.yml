@@ -1,0 +1,143 @@
+# Execute only after the reviewed Terraform plan has been applied by the operator.
+- name: Verify the instructor configuration before contacting the four VMs
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    battle_ports: "{{ (lookup('file', playbook_dir + '/cloud-outputs.json') | from_json).battle_ports.value }}"
+  tasks:
+    - name: Require matching Terraform outputs and inventory aliases
+      ansible.builtin.assert:
+        that:
+          - battle_ports.keys() | sort == ['team-a-kali', 'team-a-web', 'team-b-kali', 'team-b-web']
+          - groups.battle_hosts | sort == battle_ports.keys() | sort
+          - "'/absolute/path/' not in hostvars[item].ansible_ssh_common_args"
+      loop: '{{ groups.battle_hosts }}'
+
+- name: Configure only the added battle NIC on each host
+  hosts: battle_hosts
+  become: true
+  gather_facts: true
+  vars:
+    battle_ports: "{{ (lookup('file', playbook_dir + '/cloud-outputs.json') | from_json).battle_ports.value }}"
+    battle_endpoint: '{{ battle_ports[inventory_hostname] }}'
+    opponent: "{{ 'B' if battle_endpoint.team == 'A' else 'A' }}"
+    opponent_web: "{{ '10.90.0.22' if battle_endpoint.team == 'A' else '10.90.0.12' }}"
+  tasks:
+    - name: Read identity provisioned by the Sandbox Service
+      ansible.builtin.slurp:
+        src: /etc/idor-free-lab-identity.json
+      register: battle_identity_raw
+
+    - name: Verify this management config reaches the intended sandbox and host
+      ansible.builtin.assert:
+        that:
+          - (battle_identity_raw.content | b64decode | from_json).sandbox_uuid | lower == battle_endpoint.sandbox_uuid | lower
+          - (battle_identity_raw.content | b64decode | from_json).role == battle_endpoint.role
+        fail_msg: 'Management config, actual run assignment, and VM mapping disagree. Stop before changing networking.'
+
+    - name: Require the attached Neutron port MAC on this host
+      ansible.builtin.command:
+        argv:
+          - python3
+          - -c
+          - |
+            import pathlib, sys
+            found = [p for p in pathlib.Path('/sys/class/net').iterdir()
+                     if (p/'address').is_file() and (p/'address').read_text().strip().lower() == sys.argv[1].lower()]
+            if len(found) != 1:
+                sys.exit('Expected exactly one NIC with the Neutron MAC on the intended VM')
+          - '{{ battle_endpoint.mac_address }}'
+      changed_when: false
+
+    - name: Create the battle helper directory
+      ansible.builtin.file:
+        path: /opt/idor-battle
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Install the MAC-scoped network helper
+      ansible.builtin.copy:
+        src: guest/configure_nic.py
+        dest: /opt/idor-battle/configure_nic.py
+        owner: root
+        group: root
+        mode: '0644'
+      notify: Reconfigure battle NIC
+
+    - name: Store this NIC's fixed IP and MAC metadata
+      ansible.builtin.copy:
+        dest: /etc/idor-battle-nic.json
+        owner: root
+        group: root
+        mode: '0644'
+        content: '{{ dict(mac_address=battle_endpoint.mac_address, ip_address=battle_endpoint.ip_address) | to_nice_json }}'
+      notify: Reconfigure battle NIC
+
+    - name: Install the targeted boot service
+      ansible.builtin.copy:
+        dest: /etc/systemd/system/idor-battle-nic.service
+        mode: '0644'
+        owner: root
+        group: root
+        content: |
+          [Unit]
+          Description=Configure the IDOR battle NIC by its Neutron MAC
+          After=network-online.target NetworkManager.service systemd-networkd.service
+          Wants=network-online.target
+          [Service]
+          Type=oneshot
+          RemainAfterExit=yes
+          ExecStart=/usr/bin/python3 /opt/idor-battle/configure_nic.py --config /etc/idor-battle-nic.json
+          TimeoutStartSec=120
+          NoNewPrivileges=true
+          [Install]
+          WantedBy=multi-user.target
+      notify: Reconfigure battle NIC
+
+    - name: Start and persist battle NIC configuration
+      ansible.builtin.systemd_service:
+        name: idor-battle-nic
+        enabled: true
+        daemon_reload: true
+        state: started
+
+    - ansible.builtin.meta: flush_handlers
+
+    - name: Leave the trainee's own team and opponent URLs on Kali
+      ansible.builtin.copy:
+        dest: /home/user-access/battle-lab.txt
+        owner: user-access
+        group: user-access
+        mode: '0644'
+        content: |
+          Đội của bạn: {{ battle_endpoint.team }}
+          Sandbox của bạn: {{ battle_endpoint.sandbox_uuid }}
+          Kali trên mạng thực hành chung: {{ battle_endpoint.ip_address }}
+          Web nội bộ của bạn: http://10.80.0.20:8080
+          Web đối phương (đội {{ opponent }}): http://{{ opponent_web }}:8080
+          Đây là lab thực hành tự do, không có ô nộp flag.
+      when: battle_endpoint.role == 'kali'
+
+    - name: Verify HTTP reaches the other team's ServiceDesk
+      ansible.builtin.uri:
+        url: 'http://{{ opponent_web }}:8080/health'
+        return_content: true
+        use_proxy: false
+      register: battle_remote_health
+      until: battle_remote_health.status | default(0) == 200
+      retries: 10
+      delay: 3
+
+    - name: Verify the remote web belongs to the other sandbox
+      ansible.builtin.assert:
+        that:
+          - battle_remote_health.json.sandbox | lower == battle_ports['team-' ~ (opponent | lower) ~ '-web'].sandbox_uuid | lower
+  handlers:
+    - name: Reconfigure battle NIC
+      ansible.builtin.systemd_service:
+        name: idor-battle-nic
+        daemon_reload: true
+        state: restarted

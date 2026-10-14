@@ -1,0 +1,15 @@
+diff --git a/libs/agenda/training-agenda/run-detail/components/level/abstract-level.component.ts b/libs/agenda/training-agenda/run-detail/components/level/abstract-level.component.ts
+--- a/libs/agenda/training-agenda/run-detail/components/level/abstract-level.component.ts
++++ b/libs/agenda/training-agenda/run-detail/components/level/abstract-level.component.ts
+@@ -106,7 +106,11 @@
+     }
+ 
+     private updateTopologyAllowed(runInfo: AccessTrainingRunInfo) {
++        const isIdorFreeLab =
++            runInfo.displayedLevel.type === AbstractLevelTypeEnum.Info &&
++            runInfo.displayedLevel.title === 'IDOR Free Lab';
+         const shouldCollapse =
++            !isIdorFreeLab &&
+             runInfo.displayedLevel.type !== AbstractLevelTypeEnum.Training &&
+             runInfo.displayedLevel.type !== AbstractLevelTypeEnum.Access;
+         this.topologyAllowed.set(!shouldCollapse && !runInfo.localEnvironment);

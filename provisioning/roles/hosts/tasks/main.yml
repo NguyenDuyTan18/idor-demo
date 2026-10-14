@@ -1,0 +1,16 @@
+- name: Install common lab packages without modifying the platform routing
+  ansible.builtin.apt:
+    name:
+      - python3
+      - curl
+      - jq
+      - openssh-server
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Keep SSH running
+  ansible.builtin.service:
+    name: ssh
+    enabled: true
+    state: started

@@ -1,0 +1,22 @@
+{
+  "title": "IDOR Battle Lab — Hai đội thực hành tự do",
+  "description": "Hai trainee nhận hai sandbox riêng gồm Kali và ServiceDesk. Access Level hiển thị topology và console bằng chức năng gốc của CyberRangeCZ; instructor nối thêm mạng battle chung để mỗi đội thực nghiệm IDOR trên web đối phương.",
+  "prerequisites": ["HTTP và session cookie", "Thao tác Linux cơ bản"],
+  "outcomes": ["Kiểm tra quyền đọc đối tượng", "Kiểm tra quyền cập nhật đối tượng", "Ghi nhận và giải thích tác động của IDOR"],
+  "state": "UNRELEASED",
+  "show_stepper_bar": false,
+  "estimated_duration": 60,
+  "variant_sandboxes": false,
+  "levels": [
+    {
+      "title": "IDOR Battle Lab",
+      "level_type": "ACCESS_LEVEL",
+      "order": 0,
+      "estimated_duration": 60,
+      "minimal_possible_solve_time": null,
+      "passkey": "finish-idor-lab",
+      "cloud_content": "# IDOR Battle Lab\n\nMỗi tài khoản trainee có một sandbox riêng với Kali và web ServiceDesk. Topology bên cạnh chỉ hiển thị sandbox đang được gán cho tài khoản của bạn. Đường nối sang sandbox đội kia nằm trên mạng battle OpenStack nên không được vẽ thành cạnh trong topology.\n\n## Truy cập\n\nTrong topology, chọn **kali → Open console**. Linux: `user-access / ClientLab-Only-2026!`. Web nội bộ: `http://10.80.0.20:8080`. Đăng nhập ServiceDesk: `alice / IdorLab-Only-2026!`.\n\nMở terminal Kali và chạy `cat ~/battle-lab.txt` để biết mình thuộc đội A hay B. **Kali đội A truy cập web đội B tại `http://10.90.0.22:8080`; Kali đội B truy cập web đội A tại `http://10.90.0.12:8080`.** Nếu chưa có file hoặc chưa truy cập được URL đối phương, báo instructor kiểm tra bước nối mạng battle. Web hai đội có database và session riêng; đăng nhập riêng trên URL đích.\n\n## Thực nghiệm\n\nQuan sát request khi mở phiếu và cập nhật trạng thái. Thay đổi tham chiếu đối tượng trong API; ghi owner, URL đích, HTTP status và dữ liệu trước/sau. Kiểm tra tác động lên web đối phương và so sánh với web nội bộ.\n\nGiữ level này đang mở trong lúc dùng VM. Khi kết thúc, nhập passkey công khai `finish-idor-lab` để đóng run. Passkey chỉ là nút kết thúc do Access Level của CyberRangeCZ bắt buộc, không phải đáp án IDOR hoặc flag.",
+      "local_content": "Lab này được thiết kế cho cloud sandbox. Hãy mở Training Instance sử dụng cloud environment. Khi kết thúc, nhập passkey `finish-idor-lab`."
+    }
+  ]
+}

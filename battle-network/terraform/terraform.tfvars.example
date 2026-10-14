@@ -1,0 +1,15 @@
+# Copy to terraform.tfvars (gitignored). Fill IDs from actual run assignments.
+cloud_name = "instructor-cloud"
+pool_id    = 1
+teams = {
+  A = {
+    sandbox_uuid   = "REPLACE_WITH_TRAINEE_A_SANDBOX_UUID"
+    kali_server_id = "REPLACE_WITH_A_KALI_NOVA_VM_UUID"
+    web_server_id  = "REPLACE_WITH_A_WEB_NOVA_VM_UUID"
+  }
+  B = {
+    sandbox_uuid   = "REPLACE_WITH_TRAINEE_B_SANDBOX_UUID"
+    kali_server_id = "REPLACE_WITH_B_KALI_NOVA_VM_UUID"
+    web_server_id  = "REPLACE_WITH_B_WEB_NOVA_VM_UUID"
+  }
+}

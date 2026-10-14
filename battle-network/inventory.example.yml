@@ -1,0 +1,23 @@
+# Instructor-only management SSH configs; never distribute them to trainees.
+all:
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+  children:
+    battle_hosts:
+      hosts:
+        team-a-kali:
+          ansible_host: kali
+          ansible_user: debian
+          ansible_ssh_common_args: '-F /absolute/path/trainee-a-management-config -o ControlMaster=no -o ControlPath=none'
+        team-a-web:
+          ansible_host: web
+          ansible_user: debian
+          ansible_ssh_common_args: '-F /absolute/path/trainee-a-management-config -o ControlMaster=no -o ControlPath=none'
+        team-b-kali:
+          ansible_host: kali
+          ansible_user: debian
+          ansible_ssh_common_args: '-F /absolute/path/trainee-b-management-config -o ControlMaster=no -o ControlPath=none'
+        team-b-web:
+          ansible_host: web
+          ansible_user: debian
+          ansible_ssh_common_args: '-F /absolute/path/trainee-b-management-config -o ControlMaster=no -o ControlPath=none'

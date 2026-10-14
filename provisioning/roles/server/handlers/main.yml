@@ -1,0 +1,5 @@
+- name: Restart IDOR web
+  ansible.builtin.systemd_service:
+    name: idor-lab
+    daemon_reload: true
+    state: restarted
